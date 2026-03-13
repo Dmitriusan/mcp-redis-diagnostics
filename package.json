@@ -1,6 +1,6 @@
 {
   "name": "mcp-redis-diagnostics",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server for Redis diagnostics — analyze memory usage, slowlog, client connections, and keyspace health with AI-powered recommendations",
   "author": "Dmytro Lisnichenko",
   "type": "module",
@@ -25,15 +25,19 @@
   ],
   "keywords": [
     "mcp",
+    "mcp-server",
     "model-context-protocol",
+    "ai",
+    "claude",
+    "anthropic",
     "redis",
+    "cache",
     "diagnostics",
+    "monitoring",
+    "memory",
     "memory-analysis",
     "slowlog",
-    "performance",
-    "monitoring",
-    "ai",
-    "claude"
+    "performance"
   ],
   "license": "MIT",
   "engines": {
