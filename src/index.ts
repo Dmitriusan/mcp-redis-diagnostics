@@ -52,11 +52,7 @@ Tools provided:
 }
 
 // --- Redis connection ---
-import { validateLicense, formatUpgradePrompt } from "./license.js";
 import { Redis } from "ioredis";
-
-// License check (reads MCP_LICENSE_KEY env var once at startup)
-const license = validateLicense(process.env.MCP_LICENSE_KEY, "redis-diagnostics");
 
 let redis: Redis | null = null;
 
@@ -180,19 +176,6 @@ server.tool(
   "Analyze Redis client connections. Detects blocked clients, idle connections, output buffer issues, connection pool saturation, and pub/sub subscriber patterns.",
   {},
   async () => {
-    if (!license.isPro) {
-      return {
-        content: [{
-          type: "text",
-          text: formatUpgradePrompt("analyze_clients",
-            "Client connection analysis with:\n" +
-            "- Blocked client detection\n" +
-            "- Idle connection identification\n" +
-            "- Output buffer monitoring\n" +
-            "- Connection pool saturation alerts"),
-        }],
-      };
-    }
     try {
       const client = await getRedis();
       const info = await getInfo();
@@ -246,19 +229,6 @@ server.tool(
   "Analyze Redis latency events. Detects fork latency spikes (RDB/AOF), AOF fsync delays, slow command processing, eviction/expiry cycle delays, and active defragmentation impact. Requires latency-monitor-threshold to be set.",
   {},
   async () => {
-    if (!license.isPro) {
-      return {
-        content: [{
-          type: "text",
-          text: formatUpgradePrompt("analyze_latency",
-            "Latency event analysis with:\n" +
-            "- Fork latency spike detection (RDB/AOF)\n" +
-            "- AOF fsync delay monitoring\n" +
-            "- Command processing latency\n" +
-            "- Eviction/expiry cycle impact"),
-        }],
-      };
-    }
     try {
       const client = await getRedis();
       const rawLatest = await client.call("LATENCY", "LATEST") as unknown[];
