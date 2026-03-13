@@ -24,6 +24,7 @@ import {
   formatLatencyAnalysis,
 } from "./analyzers/latency.js";
 import { analyzeConfig, formatConfigAnalysis } from "./analyzers/config.js";
+import { analyzeReplication, formatReplicationAnalysis } from "./analyzers/replication.js";
 
 // Handle --help
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
@@ -45,6 +46,7 @@ Tools provided:
   analyze_keyspace     Key distribution, TTL coverage, hit/miss rate
   analyze_latency      Fork, AOF, command latency spike detection
   analyze_config       Dangerous configuration detection and hardening
+  analyze_replication  Replication health, lag, backlog, link status
   analyze_performance  Unified health assessment (all analyzers combined)`);
   process.exit(0);
 }
@@ -314,7 +316,30 @@ server.tool(
   }
 );
 
-// Tool 8: analyze_performance (unified)
+// Tool 8: analyze_replication
+server.tool(
+  "analyze_replication",
+  "Analyze Redis replication health. Detects broken master-replica links, high replication lag, small backlog size, sync failures, and topology issues. Works for both master and replica roles.",
+  {},
+  async () => {
+    try {
+      const info = await getInfo();
+      const analysis = analyzeReplication(info);
+      return { content: [{ type: "text", text: formatReplicationAnalysis(analysis) }] };
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: wrapRedisError("analyzing replication", err),
+          },
+        ],
+      };
+    }
+  }
+);
+
+// Tool 9: analyze_performance (unified)
 server.tool(
   "analyze_performance",
   "Comprehensive Redis health assessment. Runs all analyzers (memory, slowlog, clients, keyspace, latency) and produces a unified report with prioritized recommendations.",
