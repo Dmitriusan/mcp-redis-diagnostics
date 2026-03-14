@@ -1,6 +1,6 @@
 name: mcp-redis-diagnostics
 displayName: Redis Diagnostics
-description: MCP server for Redis diagnostics — analyze memory usage, slowlog, client connections, and keyspace health with AI-powered recommendations
+description: Connects Claude Code and Cursor to your Redis instance for memory analysis, slow command detection, client connection inspection, keyspace health checks, and replication monitoring
 version: 0.1.3
 license: MIT
 homepage: https://github.com/Dmitriusan/mcp-redis-diagnostics
