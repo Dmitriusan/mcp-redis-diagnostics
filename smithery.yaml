@@ -1,0 +1,37 @@
+name: mcp-redis-diagnostics
+displayName: Redis Diagnostics
+description: MCP server for Redis diagnostics — analyze memory usage, slowlog, client connections, and keyspace health with AI-powered recommendations
+version: 0.1.3
+license: MIT
+homepage: https://github.com/Dmitriusan/mcp-redis-diagnostics
+npm: mcp-redis-diagnostics
+categories:
+  - developer-tools
+  - monitoring
+  - databases
+keywords:
+  - redis
+  - cache
+  - diagnostics
+  - memory
+  - slowlog
+  - performance
+tools:
+  - name: analyze_memory
+    description: Analyze Redis memory usage, fragmentation ratio, and eviction behavior
+  - name: analyze_slowlog
+    description: Find slow O(N) commands from Redis SLOWLOG data
+  - name: analyze_clients
+    description: Detect blocked clients and connection pool saturation
+  - name: analyze_keyspace
+    description: Inspect TTL coverage and cache hit/miss rates per database
+  - name: analyze_latency
+    description: Detect fork latency spikes and AOF fsync delays
+  - name: analyze_config
+    description: Audit Redis configuration for security and reliability risks
+  - name: analyze_replication
+    description: Check master-replica replication health and lag
+  - name: analyze_performance
+    description: Unified health assessment across memory, latency, and connections
+transport:
+  - stdio
