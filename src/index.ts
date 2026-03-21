@@ -28,7 +28,7 @@ import { analyzeReplication, formatReplicationAnalysis } from "./analyzers/repli
 
 // Handle --help
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
-  console.log(`mcp-redis-diagnostics v0.1.0 — MCP server for Redis diagnostics
+  console.log(`mcp-redis-diagnostics v0.1.3 — MCP server for Redis diagnostics
 
 Usage:
   mcp-redis-diagnostics [options]
@@ -106,7 +106,7 @@ async function closeRedis(): Promise<void> {
 // --- MCP Server ---
 const server = new McpServer({
   name: "mcp-redis-diagnostics",
-  version: "0.1.0",
+  version: "0.1.3",
 });
 
 // Tool 1: analyze_memory
@@ -364,7 +364,19 @@ server.tool(
       try {
         const rawLatest = await client.call("LATENCY", "LATEST") as unknown[];
         const latEvents = parseLatencyLatest(rawLatest);
-        latAnalysis = analyzeLatency(latEvents);
+
+        // Fetch per-event history for trend analysis (increasing latency detection)
+        const latHistory: Record<string, import("./analyzers/latency.js").LatencyHistoryEntry[]> = {};
+        for (const event of latEvents) {
+          try {
+            const rawHistory = await client.call("LATENCY", "HISTORY", event.event) as unknown[];
+            latHistory[event.event] = parseLatencyHistory(rawHistory);
+          } catch {
+            // History may not be available for all events
+          }
+        }
+
+        latAnalysis = analyzeLatency(latEvents, latHistory);
       } catch {
         // LATENCY may not be available — silently skip
       }
