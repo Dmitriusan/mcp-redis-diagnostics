@@ -125,14 +125,16 @@ describe("formatConfigAnalysis", () => {
   it("should format findings grouped by severity", () => {
     const result = analyzeConfig(makeConfig({ maxmemory: "0", requirepass: "" }));
     const formatted = formatConfigAnalysis(result);
-    expect(formatted).toContain("Critical Issues");
-    expect(formatted).toContain("Warnings");
+    expect(formatted).toContain("# Redis Configuration Analysis");
+    expect(formatted).toContain("## Critical Issues");
+    expect(formatted).toContain("## Warnings");
     expect(formatted).toContain("maxmemory");
   });
 
   it("should show no issues for clean config", () => {
     const result = analyzeConfig(makeConfig());
     const formatted = formatConfigAnalysis(result);
+    expect(formatted).toContain("# Redis Configuration Analysis");
     expect(formatted).toContain("No issues detected");
   });
 });

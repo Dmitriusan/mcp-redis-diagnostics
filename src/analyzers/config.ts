@@ -154,7 +154,7 @@ export function analyzeConfig(config: Record<string, string>): ConfigAnalysis {
 export function formatConfigAnalysis(analysis: ConfigAnalysis): string {
   const sections: string[] = [];
 
-  sections.push("## Redis Configuration Analysis");
+  sections.push("# Redis Configuration Analysis");
   sections.push(`\n**Settings scanned**: ${analysis.totalSettings}`);
 
   const critical = analysis.findings.filter((f) => f.severity === "CRITICAL");
@@ -166,7 +166,7 @@ export function formatConfigAnalysis(analysis: ConfigAnalysis): string {
   );
 
   if (critical.length > 0) {
-    sections.push("\n### Critical Issues\n");
+    sections.push("\n## Critical Issues\n");
     for (const f of critical) {
       sections.push(`**${f.setting}** = \`${f.value}\``);
       sections.push(`${f.message}`);
@@ -175,7 +175,7 @@ export function formatConfigAnalysis(analysis: ConfigAnalysis): string {
   }
 
   if (warnings.length > 0) {
-    sections.push("\n### Warnings\n");
+    sections.push("\n## Warnings\n");
     for (const f of warnings) {
       sections.push(`**${f.setting}** = \`${f.value}\``);
       sections.push(`${f.message}`);
@@ -184,7 +184,7 @@ export function formatConfigAnalysis(analysis: ConfigAnalysis): string {
   }
 
   if (info.length > 0) {
-    sections.push("\n### Informational\n");
+    sections.push("\n## Informational\n");
     for (const f of info) {
       sections.push(`**${f.setting}** = \`${f.value}\``);
       sections.push(`${f.message}`);
@@ -194,7 +194,7 @@ export function formatConfigAnalysis(analysis: ConfigAnalysis): string {
 
   if (analysis.findings.length === 0) {
     sections.push(
-      "\n### No issues detected\n\nRedis configuration appears production-ready.",
+      "\n## No issues detected\n\nRedis configuration appears production-ready.",
     );
   }
 
