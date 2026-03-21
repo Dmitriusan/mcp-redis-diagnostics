@@ -16,6 +16,13 @@ keywords:
   - memory
   - slowlog
   - performance
+configSchema:
+  type: object
+  properties:
+    REDIS_URL:
+      type: string
+      description: "Redis connection string (e.g. redis://localhost:6379 or redis://:password@host:6379)"
+      default: "redis://localhost:6379"
 tools:
   - name: analyze_memory
     description: Analyze Redis memory usage, fragmentation ratio, and eviction behavior
