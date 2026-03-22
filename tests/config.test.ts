@@ -121,6 +121,51 @@ describe("analyzeConfig — healthy configuration", () => {
   });
 });
 
+describe("analyzeConfig — connection tuning", () => {
+  it("should flag timeout 0 as INFO", () => {
+    const result = analyzeConfig(makeConfig({ timeout: "0" }));
+    const finding = result.findings.find((f) => f.setting === "timeout");
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("INFO");
+    expect(finding!.message).toContain("idle");
+  });
+
+  it("should not flag timeout > 0", () => {
+    const result = analyzeConfig(makeConfig({ timeout: "300" }));
+    const finding = result.findings.find((f) => f.setting === "timeout");
+    expect(finding).toBeUndefined();
+  });
+
+  it("should flag tcp-keepalive 0 as INFO", () => {
+    const result = analyzeConfig(makeConfig({ "tcp-keepalive": "0" }));
+    const finding = result.findings.find((f) => f.setting === "tcp-keepalive");
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("INFO");
+    expect(finding!.message).toContain("keepalive");
+  });
+
+  it("should not flag tcp-keepalive > 0", () => {
+    const result = analyzeConfig(makeConfig({ "tcp-keepalive": "60" }));
+    const finding = result.findings.find((f) => f.setting === "tcp-keepalive");
+    expect(finding).toBeUndefined();
+  });
+
+  it("should flag hz below 10 as INFO", () => {
+    const result = analyzeConfig(makeConfig({ hz: "5" }));
+    const finding = result.findings.find((f) => f.setting === "hz");
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("INFO");
+    expect(finding!.value).toBe("5");
+    expect(finding!.recommendation).toContain("CONFIG SET hz 10");
+  });
+
+  it("should not flag hz at 10 or above", () => {
+    const result = analyzeConfig(makeConfig({ hz: "10" }));
+    const finding = result.findings.find((f) => f.setting === "hz");
+    expect(finding).toBeUndefined();
+  });
+});
+
 describe("formatConfigAnalysis", () => {
   it("should format findings grouped by severity", () => {
     const result = analyzeConfig(makeConfig({ maxmemory: "0", requirepass: "" }));

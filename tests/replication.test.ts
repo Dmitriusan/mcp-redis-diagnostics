@@ -115,3 +115,85 @@ describe("analyzeReplication", () => {
     expect(output).toContain("Last Master I/O: 2s ago");
   });
 });
+
+describe("analyzeReplication — per-replica details", () => {
+  function makeInfoWithReplicas(replicaLines: string): ReturnType<typeof parseRedisInfo> {
+    const raw = `# Replication
+role:master
+connected_slaves:2
+repl_backlog_active:1
+repl_backlog_size:16777216
+second_repl_offset:0
+master_sync_in_progress:0
+${replicaLines}
+
+# Server
+redis_version:7.2.4
+`;
+    return parseRedisInfo(raw);
+  }
+
+  it("detects replica in non-online state as CRITICAL", () => {
+    const info = makeInfoWithReplicas(
+      "slave0:ip=192.168.1.2,port=6380,state=wait_bgsave,offset=0,lag=0\n" +
+      "slave1:ip=192.168.1.3,port=6381,state=online,offset=105,lag=0"
+    );
+    const analysis = analyzeReplication(info);
+    const finding = analysis.findings.find((f) => f.title.includes("wait_bgsave"));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("CRITICAL");
+    expect(finding!.detail).toContain("192.168.1.2:6380");
+  });
+
+  it("detects replica with high lag as WARNING", () => {
+    const info = makeInfoWithReplicas(
+      "slave0:ip=10.0.0.5,port=6380,state=online,offset=1000,lag=30"
+    );
+    const analysis = analyzeReplication(info);
+    const finding = analysis.findings.find((f) => f.title.includes("lag is 30s"));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("WARNING");
+    expect(finding!.detail).toContain("stale data");
+    expect(finding!.recommendation).toContain("repl-backlog-size");
+  });
+
+  it("does not flag replica with low lag", () => {
+    const info = makeInfoWithReplicas(
+      "slave0:ip=10.0.0.5,port=6380,state=online,offset=1000,lag=1"
+    );
+    const analysis = analyzeReplication(info);
+    const lagFindings = analysis.findings.filter((f) => f.title.includes("lag is"));
+    expect(lagFindings).toHaveLength(0);
+  });
+
+  it("populates replicas array correctly", () => {
+    const info = makeInfoWithReplicas(
+      "slave0:ip=192.168.1.2,port=6380,state=online,offset=100,lag=0\n" +
+      "slave1:ip=192.168.1.3,port=6381,state=online,offset=98,lag=2"
+    );
+    const analysis = analyzeReplication(info);
+    expect(analysis.replicas).toHaveLength(2);
+    expect(analysis.replicas[0].ip).toBe("192.168.1.2");
+    expect(analysis.replicas[0].state).toBe("online");
+    expect(analysis.replicas[1].lag).toBe(2);
+  });
+
+  it("formatReplicationAnalysis shows replica table when replicas are present", () => {
+    const info = makeInfoWithReplicas(
+      "slave0:ip=10.0.0.5,port=6380,state=online,offset=500,lag=1"
+    );
+    const analysis = analyzeReplication(info);
+    const output = formatReplicationAnalysis(analysis);
+    expect(output).toContain("## Replica Details");
+    expect(output).toContain("slave0");
+    expect(output).toContain("10.0.0.5:6380");
+    expect(output).toContain("online");
+  });
+
+  it("formatReplicationAnalysis omits replica table when no replicas", () => {
+    const info = makeInfo({ replication: { role: "master", connected_slaves: "0", repl_backlog_active: "0", repl_backlog_size: "0" } });
+    const analysis = analyzeReplication(info);
+    const output = formatReplicationAnalysis(analysis);
+    expect(output).not.toContain("## Replica Details");
+  });
+});
