@@ -263,7 +263,7 @@ server.tool(
 // Tool 7: analyze_config
 server.tool(
   "analyze_config",
-  "Analyze Redis configuration for security and reliability risks. Flags: no maxmemory, unsafe eviction policy, network exposure (bind 0.0.0.0), no authentication, disabled persistence, and other dangerous settings.",
+  "Analyze Redis configuration for security and reliability risks. Flags: no maxmemory limit, unsafe eviction policy (noeviction with maxmemory set), network exposure (bind 0.0.0.0 without authentication), no requirepass, disabled persistence (both AOF and RDB off), idle connection timeout not set, TCP keepalive disabled, and server frequency (hz) too low.",
   {},
   async () => {
     try {
@@ -289,7 +289,7 @@ server.tool(
 // Tool 8: analyze_replication
 server.tool(
   "analyze_replication",
-  "Analyze Redis replication health. Detects broken master-replica links, high replication lag, small backlog size, sync failures, and topology issues. Works for both master and replica roles.",
+  "Analyze Redis replication health. For masters: reports connected replica count, per-replica state (online/wait_bgsave/send_bulk) and lag in seconds, backlog size adequacy, and partial resync offset history. For replicas: detects broken master link, high I/O lag, and full sync in progress. Works for both master and replica roles.",
   {},
   async () => {
     try {
