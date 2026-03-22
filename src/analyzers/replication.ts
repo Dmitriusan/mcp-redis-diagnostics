@@ -12,6 +12,15 @@ export interface ReplicationFinding {
   recommendation: string;
 }
 
+export interface ReplicaInfo {
+  id: string;     // "slave0", "slave1", etc.
+  ip: string;
+  port: string;
+  state: string;  // "online", "wait_bgsave", "send_bulk", "online"
+  offset: number;
+  lag: number;    // seconds behind master
+}
+
 export interface ReplicationAnalysis {
   role: string;
   connectedSlaves: number;
@@ -21,8 +30,36 @@ export interface ReplicationAnalysis {
   replBacklogSize: number;
   secondReplOffset: number;
   masterSyncInProgress: boolean;
+  replicas: ReplicaInfo[];
   findings: ReplicationFinding[];
   summary: string;
+}
+
+/**
+ * Parse per-replica entries from the replication section.
+ * INFO replication includes lines like: slave0:ip=192.168.1.2,port=6380,state=online,offset=105,lag=0
+ */
+function parseReplicaEntries(info: RedisInfo): ReplicaInfo[] {
+  const replicas: ReplicaInfo[] = [];
+  for (const [key, value] of Object.entries(info.replication || {})) {
+    if (!key.startsWith("slave")) continue;
+    const parts: Record<string, string> = {};
+    for (const pair of value.split(",")) {
+      const eqIdx = pair.indexOf("=");
+      if (eqIdx !== -1) {
+        parts[pair.substring(0, eqIdx)] = pair.substring(eqIdx + 1);
+      }
+    }
+    replicas.push({
+      id: key,
+      ip: parts.ip || "",
+      port: parts.port || "",
+      state: parts.state || "unknown",
+      offset: parseInt(parts.offset || "0", 10),
+      lag: parseInt(parts.lag || "0", 10),
+    });
+  }
+  return replicas;
 }
 
 export function analyzeReplication(info: RedisInfo): ReplicationAnalysis {
@@ -34,6 +71,7 @@ export function analyzeReplication(info: RedisInfo): ReplicationAnalysis {
   const replBacklogSize = infoNum(info, "replication", "repl_backlog_size");
   const secondReplOffset = infoNum(info, "replication", "second_repl_offset");
   const masterSyncInProgress = infoNum(info, "replication", "master_sync_in_progress") === 1;
+  const replicas = parseReplicaEntries(info);
 
   const findings: ReplicationFinding[] = [];
 
@@ -53,6 +91,25 @@ export function analyzeReplication(info: RedisInfo): ReplicationAnalysis {
         detail: `Replication topology: master with ${connectedSlaves} active replica(s).`,
         recommendation: "No action needed.",
       });
+    }
+
+    // Check per-replica state and lag
+    for (const replica of replicas) {
+      if (replica.state !== "online") {
+        findings.push({
+          severity: "CRITICAL",
+          title: `Replica ${replica.id} (${replica.ip}:${replica.port}) is ${replica.state}`,
+          detail: `Replica at ${replica.ip}:${replica.port} is in '${replica.state}' state instead of 'online'. It is not receiving updates.`,
+          recommendation: "Check replica connectivity, disk space, and Redis logs. The replica may need to perform a full resync.",
+        });
+      } else if (replica.lag > 10) {
+        findings.push({
+          severity: "WARNING",
+          title: `Replica ${replica.id} (${replica.ip}:${replica.port}) lag is ${replica.lag}s`,
+          detail: `Replica at ${replica.ip}:${replica.port} is ${replica.lag} seconds behind the master. Clients reading from this replica may see stale data.`,
+          recommendation: "Check network latency between master and replica. High write throughput or slow disk on the replica can cause lag. Consider increasing repl-backlog-size.",
+        });
+      }
     }
 
     // Check replication backlog
@@ -147,6 +204,7 @@ export function analyzeReplication(info: RedisInfo): ReplicationAnalysis {
     replBacklogSize,
     secondReplOffset,
     masterSyncInProgress,
+    replicas,
     findings,
     summary,
   };
@@ -166,6 +224,16 @@ export function formatReplicationAnalysis(analysis: ReplicationAnalysis): string
     lines.push(`- Connected Replicas: ${analysis.connectedSlaves}`);
     lines.push(`- Backlog Active: ${analysis.replBacklogActive ? "yes" : "no"}`);
     lines.push(`- Backlog Size: ${formatBytes(analysis.replBacklogSize)}`);
+
+    if (analysis.replicas.length > 0) {
+      lines.push("");
+      lines.push("## Replica Details");
+      lines.push("| Replica | Address | State | Lag (s) |");
+      lines.push("|---------|---------|-------|---------|");
+      for (const r of analysis.replicas) {
+        lines.push(`| ${r.id} | ${r.ip}:${r.port} | ${r.state} | ${r.lag} |`);
+      }
+    }
   } else if (analysis.role === "slave") {
     lines.push(`- Master Link Status: ${analysis.masterLinkStatus || "unknown"}`);
     lines.push(`- Last Master I/O: ${analysis.masterLastIoSecondsAgo}s ago`);
