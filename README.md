@@ -9,6 +9,19 @@ MCP server for Redis diagnostics — analyze memory usage, slowlog, client conne
 
 Most Redis MCP servers are CRUD wrappers (get/set keys). RedisNexus offers diagnostics but targets enterprises (K8s, multi-tenant SaaS). This tool is the only **lightweight npm package** for deep Redis diagnostics — 7 tools covering memory fragmentation, slowlog patterns, client connection health, keyspace distribution, latency analysis, and configuration auditing. Install with `npx`, no Docker or SaaS required.
 
+## Pro Tier
+
+**Generate exportable diagnostic reports (HTML + PDF)** with a Pro license key.
+
+- Full JVM thread dump analysis report with actionable recommendations
+- PDF export for sharing with your team
+- Priority support
+
+<!-- TODO: replace placeholder Stripe Payment Link once STRIPE_SECRET_KEY is configured -->
+**$9.99/month** — [Get Pro License](https://buy.stripe.com/PLACEHOLDER)
+
+Pro license key activates the `generate_report` MCP tool in mcp-jvm-diagnostics.
+
 ## Tools (7)
 
 ### `analyze_memory`
