@@ -69,7 +69,7 @@ const SAFER_ALTERNATIVES: Record<string, string> = {
   KEYS: "Use SCAN instead of KEYS for production key iteration",
   SMEMBERS: "Use SSCAN for large sets instead of SMEMBERS",
   HGETALL: "Use HSCAN for large hashes instead of HGETALL",
-  LRANGE: "Use pagination with LRANGE (small ranges) or consider a different data structure",
+  LRANGE: "Avoid LRANGE with large ranges (e.g. LRANGE 0 -1 fetches the full list). Use bounded ranges for pagination or switch to a sorted set for range queries.",
   SORT: "Pre-sort data or use sorted sets (ZADD/ZRANGEBYSCORE) instead of SORT",
 };
 

@@ -68,6 +68,17 @@ describe("analyzeSlowlog", () => {
     expect(finding!.recommendation).toContain("HSCAN");
   });
 
+  it("detects LRANGE as WARNING with bounded-range recommendation", () => {
+    const entries = parseSlowlogEntries([
+      [1, 1709000000, 18000, ["LRANGE", "mylist", "0", "-1"], "", ""],
+    ]);
+    const analysis = analyzeSlowlog(entries);
+    const finding = analysis.findings.find((f) => f.title.includes("LRANGE"));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("WARNING");
+    expect(finding!.recommendation).toContain("LRANGE 0 -1");
+  });
+
   it("detects extreme latency (>100ms) as CRITICAL", () => {
     const entries = parseSlowlogEntries([
       [1, 1709000000, 200000, ["SORT", "biglist"], "", ""],
