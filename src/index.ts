@@ -312,7 +312,7 @@ server.tool(
 // Tool 9: analyze_performance (unified)
 server.tool(
   "analyze_performance",
-  "Comprehensive Redis health assessment. Runs all analyzers (memory, slowlog, clients, keyspace, latency) and produces a unified report with prioritized recommendations.",
+  "Comprehensive Redis health assessment. Runs all analyzers (memory, slowlog, clients, keyspace, latency, replication) and produces a unified report with prioritized recommendations.",
   {
     slowlog_count: z
       .number()
@@ -381,6 +381,9 @@ server.tool(
         // LATENCY may not be available — silently skip
       }
 
+      // Replication (uses INFO only — no extra commands)
+      const replAnalysis = analyzeReplication(info);
+
       // Unified report
       const lines: string[] = [];
       lines.push("# Redis Performance Report");
@@ -393,6 +396,7 @@ server.tool(
         ...(clientAnalysis?.findings ?? []),
         ...ksAnalysis.findings,
         ...(latAnalysis?.findings ?? []),
+        ...replAnalysis.findings,
       ];
       const criticalCount = allFindings.filter(
         (f) => f.severity === "CRITICAL"
@@ -430,6 +434,7 @@ server.tool(
       lines.push(`- Clients: ${clientAnalysis?.summary ?? "unavailable (see errors above)"}`);
       lines.push(`- Keyspace: ${ksAnalysis.summary}`);
       if (latAnalysis) lines.push(`- Latency: ${latAnalysis.summary}`);
+      lines.push(`- Replication: ${replAnalysis.summary}`);
 
       // Critical findings first
       const criticals = allFindings.filter((f) => f.severity === "CRITICAL");
@@ -480,6 +485,11 @@ server.tool(
         lines.push("");
         lines.push(formatLatencyAnalysis(latAnalysis));
       }
+
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+      lines.push(formatReplicationAnalysis(replAnalysis));
 
       return { content: [{ type: "text", text: lines.join("\n") }] };
     } catch (err) {
