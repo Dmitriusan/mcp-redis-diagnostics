@@ -76,6 +76,42 @@ describe("analyzeMemory", () => {
     expect(noevict).toBeDefined();
   });
 
+  it("suppresses standalone noeviction warning when memory is already at >90% CRITICAL", () => {
+    // At >90% with noeviction, the CRITICAL finding already contains noeviction guidance.
+    // A separate noeviction WARNING would be redundant.
+    const info = makeInfo({
+      memory: {
+        used_memory: "95000000",
+        maxmemory: "100000000",
+        maxmemory_policy: "noeviction",
+        mem_fragmentation_ratio: "1.1",
+        used_memory_rss: "100000000",
+        used_memory_peak: "95000000",
+      },
+    });
+    const analysis = analyzeMemory(info);
+    const noevictFindings = analysis.findings.filter((f) => f.title === "Using noeviction policy");
+    expect(noevictFindings).toHaveLength(0);
+  });
+
+  it("shows noeviction warning when memory pressure is low", () => {
+    // At low memory usage, noeviction policy is still a risk worth calling out.
+    const info = makeInfo({
+      memory: {
+        used_memory: "10000000",
+        maxmemory: "100000000",
+        maxmemory_policy: "noeviction",
+        mem_fragmentation_ratio: "1.1",
+        used_memory_rss: "11000000",
+        used_memory_peak: "10000000",
+      },
+    });
+    const analysis = analyzeMemory(info);
+    const noevictFinding = analysis.findings.find((f) => f.title === "Using noeviction policy");
+    expect(noevictFinding).toBeDefined();
+    expect(noevictFinding!.severity).toBe("WARNING");
+  });
+
   it("reports healthy memory", () => {
     const info = makeInfo({ memory: { mem_fragmentation_ratio: "1.1", used_memory: "10000000", used_memory_rss: "11000000", used_memory_peak: "10000000", maxmemory: "100000000", maxmemory_policy: "allkeys-lru" } });
     const analysis = analyzeMemory(info);
