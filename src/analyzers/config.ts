@@ -54,10 +54,13 @@ export function analyzeConfig(config: Record<string, string>): ConfigAnalysis {
     });
   }
 
-  // 3. bind 0.0.0.0 security check
+  // 3. bind 0.0.0.0 security check.
+  // Empty bind string means Redis has no explicit bind directive and listens on all
+  // interfaces — same exposure as bind 0.0.0.0. Use `bind !== undefined` (not the
+  // truthy `bind &&`) so the empty-string case is not silently skipped.
   const bind = config["bind"];
   const protectedMode = config["protected-mode"];
-  if (bind && (bind.includes("0.0.0.0") || bind === "")) {
+  if (bind !== undefined && (bind.includes("0.0.0.0") || bind === "")) {
     if (protectedMode === "no") {
       findings.push({
         severity: "CRITICAL",
