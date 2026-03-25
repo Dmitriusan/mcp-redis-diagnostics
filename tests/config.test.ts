@@ -75,6 +75,22 @@ describe("analyzeConfig — network security", () => {
     const bindFindings = result.findings.filter((f) => f.setting.includes("bind"));
     expect(bindFindings.length).toBe(0);
   });
+
+  it("should flag empty bind string + protected-mode no as CRITICAL", () => {
+    // Empty bind means Redis has no explicit bind directive → listens on all interfaces.
+    // Previously the `bind &&` guard silently skipped the empty-string case.
+    const result = analyzeConfig(makeConfig({ bind: "", "protected-mode": "no" }));
+    const finding = result.findings.find((f) => f.severity === "CRITICAL" && f.setting.includes("bind"));
+    expect(finding).toBeDefined();
+    expect(finding!.message).toContain("accessible from any network");
+  });
+
+  it("should flag empty bind string + protected-mode yes as WARNING", () => {
+    const result = analyzeConfig(makeConfig({ bind: "", "protected-mode": "yes" }));
+    const finding = result.findings.find((f) => f.setting === "bind");
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("WARNING");
+  });
 });
 
 describe("analyzeConfig — authentication", () => {
