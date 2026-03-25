@@ -312,7 +312,7 @@ server.tool(
 // Tool 9: analyze_performance (unified)
 server.tool(
   "analyze_performance",
-  "Comprehensive Redis health assessment. Runs all analyzers (memory, slowlog, clients, keyspace, latency, replication) and produces a unified report with prioritized recommendations.",
+  "Comprehensive Redis health assessment. Runs all analyzers (memory, slowlog, clients, keyspace, latency, replication, config) and produces a unified report with prioritized recommendations.",
   {
     slowlog_count: z
       .number()
@@ -384,12 +384,27 @@ server.tool(
       // Replication (uses INFO only — no extra commands)
       const replAnalysis = analyzeReplication(info);
 
+      // Config (may fail if CONFIG GET is blocked via ACL)
+      let configAnalysis: ReturnType<typeof analyzeConfig> | null = null;
+      try {
+        const rawConfig = await client.call("CONFIG", "GET", "*") as string[];
+        const configMap: Record<string, string> = {};
+        for (let i = 0; i < rawConfig.length; i += 2) {
+          configMap[rawConfig[i]] = rawConfig[i + 1];
+        }
+        configAnalysis = analyzeConfig(configMap);
+      } catch (err) {
+        errors.push(`Config: ${err instanceof Error ? err.message : String(err)}`);
+      }
+
       // Unified report
       const lines: string[] = [];
       lines.push("# Redis Performance Report");
       lines.push("");
 
-      // Overall status
+      // Overall status — non-config findings have { title, recommendation };
+      // ConfigFinding uses { setting, message } instead, so keep them separate
+      // to avoid TypeScript union type issues when accessing f.title below.
       const allFindings = [
         ...memAnalysis.findings,
         ...(slowAnalysis?.findings ?? []),
@@ -398,12 +413,13 @@ server.tool(
         ...(latAnalysis?.findings ?? []),
         ...replAnalysis.findings,
       ];
-      const criticalCount = allFindings.filter(
-        (f) => f.severity === "CRITICAL"
-      ).length;
-      const warningCount = allFindings.filter(
-        (f) => f.severity === "WARNING"
-      ).length;
+      const cfgFindings = configAnalysis?.findings ?? [];
+      const criticalCount =
+        allFindings.filter((f) => f.severity === "CRITICAL").length +
+        cfgFindings.filter((f) => f.severity === "CRITICAL").length;
+      const warningCount =
+        allFindings.filter((f) => f.severity === "WARNING").length +
+        cfgFindings.filter((f) => f.severity === "WARNING").length;
 
       const overallStatus =
         criticalCount > 0
@@ -435,23 +451,44 @@ server.tool(
       lines.push(`- Keyspace: ${ksAnalysis.summary}`);
       if (latAnalysis) lines.push(`- Latency: ${latAnalysis.summary}`);
       lines.push(`- Replication: ${replAnalysis.summary}`);
+      if (configAnalysis) {
+        const cfgCritical = configAnalysis.findings.filter((f) => f.severity === "CRITICAL").length;
+        const cfgWarnings = configAnalysis.findings.filter((f) => f.severity === "WARNING").length;
+        const cfgSummary =
+          cfgCritical > 0
+            ? `CRITICAL: ${cfgCritical} critical config issue(s)`
+            : cfgWarnings > 0
+              ? `WARNING: ${cfgWarnings} config warning(s)`
+              : "Config OK";
+        lines.push(`- Config: ${cfgSummary}`);
+      } else {
+        lines.push(`- Config: unavailable (see errors above)`);
+      }
 
       // Critical findings first
       const criticals = allFindings.filter((f) => f.severity === "CRITICAL");
-      if (criticals.length > 0) {
+      const cfgCriticals = cfgFindings.filter((f) => f.severity === "CRITICAL");
+      if (criticals.length > 0 || cfgCriticals.length > 0) {
         lines.push("");
         lines.push("## Critical Issues");
         for (const f of criticals) {
           lines.push(`- **${f.title}**: ${f.recommendation}`);
         }
+        for (const f of cfgCriticals) {
+          lines.push(`- **${f.setting}**: ${f.recommendation}`);
+        }
       }
 
       const warnings = allFindings.filter((f) => f.severity === "WARNING");
-      if (warnings.length > 0) {
+      const cfgWarnings = cfgFindings.filter((f) => f.severity === "WARNING");
+      if (warnings.length > 0 || cfgWarnings.length > 0) {
         lines.push("");
         lines.push("## Warnings");
         for (const f of warnings) {
           lines.push(`- **${f.title}**: ${f.recommendation}`);
+        }
+        for (const f of cfgWarnings) {
+          lines.push(`- **${f.setting}**: ${f.recommendation}`);
         }
       }
 
@@ -490,6 +527,13 @@ server.tool(
       lines.push("---");
       lines.push("");
       lines.push(formatReplicationAnalysis(replAnalysis));
+
+      if (configAnalysis) {
+        lines.push("");
+        lines.push("---");
+        lines.push("");
+        lines.push(formatConfigAnalysis(configAnalysis));
+      }
 
       return { content: [{ type: "text", text: lines.join("\n") }] };
     } catch (err) {
