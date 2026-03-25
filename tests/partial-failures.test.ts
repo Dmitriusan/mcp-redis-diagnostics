@@ -8,6 +8,7 @@
 import { describe, it, expect } from "vitest";
 import { parseRedisInfo, type RedisInfo } from "../src/parsers/info.js";
 import { analyzeMemory, formatMemoryAnalysis } from "../src/analyzers/memory.js";
+import { analyzeConfig, formatConfigAnalysis } from "../src/analyzers/config.js";
 import {
   parseSlowlogEntries,
   analyzeSlowlog,
@@ -192,6 +193,29 @@ redis_version:7.2.4
       expect(formatClientAnalysis(clientAnalysis)).toContain("Client");
       expect(formatKeyspaceAnalysis(ksAnalysis)).toContain("Keyspace");
       expect(formatLatencyAnalysis(latAnalysis)).toContain("Latency");
+    });
+
+    it("includes config analysis findings in overall critical count", () => {
+      // Config criticals (e.g. no maxmemory) must surface in the unified report.
+      const configMap = {
+        maxmemory: "0",             // CRITICAL: no memory limit
+        "maxmemory-policy": "noeviction",
+        bind: "127.0.0.1",
+        "protected-mode": "yes",
+        requirepass: "s3cret",
+        appendonly: "yes",
+        save: "3600 1",
+        timeout: "300",
+        "tcp-keepalive": "300",
+        hz: "10",
+      };
+      const configAnalysis = analyzeConfig(configMap);
+      const cfgCriticals = configAnalysis.findings.filter((f) => f.severity === "CRITICAL");
+      expect(cfgCriticals.length).toBeGreaterThan(0);
+      // formatConfigAnalysis must also work independently (used in the unified report)
+      const output = formatConfigAnalysis(configAnalysis);
+      expect(output).toContain("## Critical Issues");
+      expect(output).toContain("maxmemory");
     });
   });
 });
