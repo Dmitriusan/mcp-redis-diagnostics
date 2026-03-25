@@ -111,8 +111,13 @@ export function analyzeMemory(info: RedisInfo): MemoryAnalysis {
     });
   }
 
-  // Check noeviction policy with high memory
-  if (maxMemoryPolicy === "noeviction" && maxMemory > 0) {
+  // Check noeviction policy with high memory.
+  // Skip if a maxmemory pressure finding was already added (>75% or >90%) — those
+  // findings already include noeviction-specific guidance in their recommendations.
+  const hasPressureFinding = findings.some(
+    (f) => f.title.includes("maxmemory") && (f.severity === "CRITICAL" || f.severity === "WARNING")
+  );
+  if (maxMemoryPolicy === "noeviction" && maxMemory > 0 && !hasPressureFinding) {
     findings.push({
       severity: "WARNING",
       title: "Using noeviction policy",
