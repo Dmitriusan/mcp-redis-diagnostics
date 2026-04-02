@@ -135,7 +135,7 @@ server.tool(
 // Tool 2: analyze_slowlog
 server.tool(
   "analyze_slowlog",
-  "Analyze Redis SLOWLOG to find slow commands. Detects dangerous O(N) commands (KEYS, SMEMBERS, HGETALL), identifies latency hotspots, and recommends safer alternatives.",
+  "Analyze Redis SLOWLOG to find slow commands. Detects dangerous O(N) commands (KEYS, SMEMBERS, HGETALL, LRANGE, SORT, FLUSHDB, FLUSHALL), identifies latency hotspots, and recommends safer alternatives (SCAN, SSCAN, HSCAN, bounded ranges, sorted sets).",
   {
     count: z
       .number()
