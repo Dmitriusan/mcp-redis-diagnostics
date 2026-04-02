@@ -145,6 +145,39 @@ describe("analyzeLatency", () => {
     expect(trendFinding).toBeDefined();
   });
 
+  it("detects active-defrag-cycle latency", () => {
+    const events = parseLatencyLatest([["active-defrag-cycle", 1709000000, 80, 150]]);
+    const analysis = analyzeLatency(events);
+    const finding = analysis.findings.find((f) => f.title.includes("Active defrag latency"));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("WARNING");
+    expect(finding!.recommendation).toContain("active-defrag-cycle-max-cpu-percent");
+  });
+
+  it("does not fire active-defrag-cycle warning below threshold", () => {
+    const events = parseLatencyLatest([["active-defrag-cycle", 1709000000, 30, 80]]);
+    const analysis = analyzeLatency(events);
+    const finding = analysis.findings.find((f) => f.title.includes("Active defrag"));
+    expect(finding).toBeUndefined();
+  });
+
+  it("detects generic unrecognized event above 200ms", () => {
+    const events = parseLatencyLatest([["rdb-unlink-temp-file", 1709000000, 100, 300]]);
+    const analysis = analyzeLatency(events);
+    const finding = analysis.findings.find((f) => f.title.includes("300ms max"));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("WARNING");
+    expect(finding!.recommendation).toContain("system resources");
+  });
+
+  it("does not fire generic event warning below 200ms threshold", () => {
+    const events = parseLatencyLatest([["rdb-unlink-temp-file", 1709000000, 50, 150]]);
+    const analysis = analyzeLatency(events);
+    // Should produce a healthy INFO finding, not a warning for this unknown event
+    const warnFindings = analysis.findings.filter((f) => f.severity === "WARNING" || f.severity === "CRITICAL");
+    expect(warnFindings).toHaveLength(0);
+  });
+
   it("reports healthy when events within normal range", () => {
     const events = parseLatencyLatest([
       ["command", 1709000000, 5, 20],
