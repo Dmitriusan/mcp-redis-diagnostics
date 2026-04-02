@@ -140,7 +140,7 @@ export function analyzeSlowlog(entries: SlowlogEntry[], thresholdUs: number = 10
 
   // Check command concentration
   const sortedCmds = Object.entries(commandBreakdown).sort((a, b) => b[1].count - a[1].count);
-  if (sortedCmds.length > 0 && entries.length > 5) {
+  if (sortedCmds.length > 0 && entries.length >= 2) {
     const topCmd = sortedCmds[0];
     const topPct = (topCmd[1].count / entries.length) * 100;
     if (topPct > 50) {

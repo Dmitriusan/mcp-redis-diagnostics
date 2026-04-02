@@ -104,6 +104,20 @@ describe("analyzeSlowlog", () => {
     expect(concFinding).toBeDefined();
   });
 
+  it("detects command concentration in small slowlog (2 entries)", () => {
+    // Even with only 2 entries, if one command accounts for >50%, a warning should fire.
+    // Previously missed: entries.length > 5 guard skipped slowlogs with ≤5 entries.
+    const entries = parseSlowlogEntries([
+      [1, 1709000000, 15000, ["SORT", "biglist"], "", ""],
+      [2, 1709000001, 12000, ["SORT", "otherlist"], "", ""],
+    ]);
+    const analysis = analyzeSlowlog(entries);
+    const concFinding = analysis.findings.find((f) => f.title.includes("dominates"));
+    expect(concFinding).toBeDefined();
+    expect(concFinding!.title).toContain("SORT");
+    expect(concFinding!.title).toContain("100%");
+  });
+
   it("reports empty slowlog as healthy", () => {
     const analysis = analyzeSlowlog([]);
     expect(analysis.summary).toContain("clean");
