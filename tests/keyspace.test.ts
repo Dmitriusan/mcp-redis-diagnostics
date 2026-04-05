@@ -103,6 +103,23 @@ evicted_keys:0
     expect(output).toContain("Database Distribution");
   });
 
+  it("reports INFO for high expired key count", () => {
+    const info = makeInfo({ expired: "2000000" });
+    const analysis = analyzeKeyspace(info);
+    const expiredFinding = analysis.findings.find((f) => f.title.includes("expired since start"));
+    expect(expiredFinding).toBeDefined();
+    expect(expiredFinding!.severity).toBe("INFO");
+    expect(expiredFinding!.detail).toContain("active TTL-based cache management");
+    expect(expiredFinding!.recommendation).toContain("expired_stale_perc");
+  });
+
+  it("does not flag expired key count below threshold", () => {
+    const info = makeInfo({ expired: "500000" });
+    const analysis = analyzeKeyspace(info);
+    const expiredFinding = analysis.findings.find((f) => f.title.includes("expired since start"));
+    expect(expiredFinding).toBeUndefined();
+  });
+
   it("detects unbalanced distribution", () => {
     const info = makeInfo({
       keyspace: "db0:keys=100000,expires=50000,avg_ttl=1000\ndb1:keys=10,expires=5,avg_ttl=500",
