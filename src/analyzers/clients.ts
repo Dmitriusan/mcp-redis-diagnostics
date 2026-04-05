@@ -87,7 +87,7 @@ export function analyzeClients(
   const maxClients = infoNum(info, "server", "maxclients") || 10000;
 
   const idleConnections = clients.filter(
-    (c) => c.idle > IDLE_THRESHOLD && !c.flags.includes("S") // exclude replicas
+    (c) => c.idle > IDLE_THRESHOLD && !c.flags.includes("S") && !c.flags.includes("P") // exclude replicas and pub/sub subscribers
   ).length;
 
   const findings: ClientFinding[] = [];
@@ -152,8 +152,8 @@ export function analyzeClients(
     });
   }
 
-  // Check for pub/sub clients without subscriptions
-  const pubsubClients = clients.filter((c) => c.flags.includes("S"));
+  // Check for pub/sub subscriber clients
+  const pubsubClients = clients.filter((c) => c.flags.includes("P"));
   if (pubsubClients.length > 50) {
     findings.push({
       severity: "INFO",
