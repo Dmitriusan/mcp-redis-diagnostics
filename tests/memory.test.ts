@@ -112,6 +112,41 @@ describe("analyzeMemory", () => {
     expect(noevictFinding!.severity).toBe("WARNING");
   });
 
+  it("reports INFO when peak memory was more than 2x current", () => {
+    const info = makeInfo({
+      memory: {
+        used_memory: "50000000",
+        used_memory_peak: "200000000",
+        used_memory_rss: "55000000",
+        maxmemory: "500000000",
+        maxmemory_policy: "allkeys-lru",
+        mem_fragmentation_ratio: "1.1",
+      },
+    });
+    const analysis = analyzeMemory(info);
+    const peakFinding = analysis.findings.find((f) => f.title.includes("Peak memory was"));
+    expect(peakFinding).toBeDefined();
+    expect(peakFinding!.severity).toBe("INFO");
+    expect(peakFinding!.title).toContain("4.0x");
+    expect(peakFinding!.recommendation).toContain("spike");
+  });
+
+  it("does not flag peak memory when ratio is below 2x", () => {
+    const info = makeInfo({
+      memory: {
+        used_memory: "80000000",
+        used_memory_peak: "100000000",
+        used_memory_rss: "88000000",
+        maxmemory: "500000000",
+        maxmemory_policy: "allkeys-lru",
+        mem_fragmentation_ratio: "1.1",
+      },
+    });
+    const analysis = analyzeMemory(info);
+    const peakFinding = analysis.findings.find((f) => f.title.includes("Peak memory was"));
+    expect(peakFinding).toBeUndefined();
+  });
+
   it("reports healthy memory", () => {
     const info = makeInfo({ memory: { mem_fragmentation_ratio: "1.1", used_memory: "10000000", used_memory_rss: "11000000", used_memory_peak: "10000000", maxmemory: "100000000", maxmemory_policy: "allkeys-lru" } });
     const analysis = analyzeMemory(info);
