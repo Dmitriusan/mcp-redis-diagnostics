@@ -13,6 +13,7 @@ function makeConfig(overrides: Record<string, string> = {}): Record<string, stri
     timeout: "300",
     "tcp-keepalive": "300",
     hz: "10",
+    "latency-monitor-threshold": "100",
     ...overrides,
   };
 }
@@ -178,6 +179,32 @@ describe("analyzeConfig — connection tuning", () => {
   it("should not flag hz at 10 or above", () => {
     const result = analyzeConfig(makeConfig({ hz: "10" }));
     const finding = result.findings.find((f) => f.setting === "hz");
+    expect(finding).toBeUndefined();
+  });
+});
+
+describe("analyzeConfig — latency monitoring", () => {
+  it("should flag latency-monitor-threshold 0 as INFO", () => {
+    const result = analyzeConfig(makeConfig({ "latency-monitor-threshold": "0" }));
+    const finding = result.findings.find((f) => f.setting === "latency-monitor-threshold");
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("INFO");
+    expect(finding!.message).toContain("analyze_latency");
+    expect(finding!.recommendation).toContain("CONFIG SET latency-monitor-threshold");
+  });
+
+  it("should flag missing latency-monitor-threshold as INFO", () => {
+    const config = makeConfig();
+    delete config["latency-monitor-threshold"];
+    const result = analyzeConfig(config);
+    const finding = result.findings.find((f) => f.setting === "latency-monitor-threshold");
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("INFO");
+  });
+
+  it("should not flag latency-monitor-threshold when set to a positive value", () => {
+    const result = analyzeConfig(makeConfig({ "latency-monitor-threshold": "50" }));
+    const finding = result.findings.find((f) => f.setting === "latency-monitor-threshold");
     expect(finding).toBeUndefined();
   });
 });

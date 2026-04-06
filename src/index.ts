@@ -263,7 +263,7 @@ server.tool(
 // Tool 7: analyze_config
 server.tool(
   "analyze_config",
-  "Analyze Redis configuration for security and reliability risks. Flags: no maxmemory limit, unsafe eviction policy (noeviction with maxmemory set), network exposure (bind 0.0.0.0 without authentication), no requirepass, disabled persistence (both AOF and RDB off), idle connection timeout not set, TCP keepalive disabled, and server frequency (hz) too low.",
+  "Analyze Redis configuration for security and reliability risks. Flags: no maxmemory limit, unsafe eviction policy (noeviction with maxmemory set), network exposure (bind 0.0.0.0 without authentication), no requirepass, disabled persistence (both AOF and RDB off), idle connection timeout not set, TCP keepalive disabled, server frequency (hz) too low, and latency-monitor-threshold disabled (which silences the analyze_latency tool).",
   {},
   async () => {
     try {

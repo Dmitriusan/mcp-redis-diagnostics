@@ -118,6 +118,37 @@ describe("analyzeSlowlog", () => {
     expect(concFinding!.title).toContain("100%");
   });
 
+  it("detects FLUSHALL as CRITICAL", () => {
+    const entries = parseSlowlogEntries([
+      [1, 1709000000, 5000, ["FLUSHALL"], "", ""],
+    ]);
+    const analysis = analyzeSlowlog(entries);
+    const finding = analysis.findings.find((f) => f.title.includes("FLUSHALL"));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("CRITICAL");
+  });
+
+  it("detects FLUSHDB as CRITICAL", () => {
+    const entries = parseSlowlogEntries([
+      [1, 1709000000, 3000, ["FLUSHDB"], "", ""],
+    ]);
+    const analysis = analyzeSlowlog(entries);
+    const finding = analysis.findings.find((f) => f.title.includes("FLUSHDB"));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("CRITICAL");
+  });
+
+  it("detects SORT as WARNING with sorted-set recommendation", () => {
+    const entries = parseSlowlogEntries([
+      [1, 1709000000, 8000, ["SORT", "list:users"], "", ""],
+    ]);
+    const analysis = analyzeSlowlog(entries);
+    const finding = analysis.findings.find((f) => f.title.includes("SORT"));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("WARNING");
+    expect(finding!.recommendation).toContain("sorted sets");
+  });
+
   it("reports empty slowlog as healthy", () => {
     const analysis = analyzeSlowlog([]);
     expect(analysis.summary).toContain("clean");

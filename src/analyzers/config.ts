@@ -151,6 +151,21 @@ export function analyzeConfig(config: Record<string, string>): ConfigAnalysis {
     });
   }
 
+  // 9. latency-monitor-threshold = 0 (latency monitoring disabled)
+  // Redis ships with this set to 0 by default, which disables all latency tracking.
+  // When disabled, analyze_latency always reports "no events" even if Redis has real
+  // latency spikes — leaving the user with no actionable data.
+  const latencyThreshold = config["latency-monitor-threshold"];
+  if (latencyThreshold === "0" || latencyThreshold === undefined || latencyThreshold === "") {
+    findings.push({
+      severity: "INFO",
+      setting: "latency-monitor-threshold",
+      value: latencyThreshold ?? "(not set)",
+      message: "Latency monitoring is disabled (threshold=0). The analyze_latency tool will always report no events, even under real latency pressure.",
+      recommendation: "Enable latency monitoring: CONFIG SET latency-monitor-threshold 100 (tracks events >100ms). Use 50 for high-traffic systems.",
+    });
+  }
+
   return { totalSettings, findings };
 }
 
