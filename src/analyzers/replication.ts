@@ -112,15 +112,19 @@ export function analyzeReplication(info: RedisInfo): ReplicationAnalysis {
       }
     }
 
-    // Check replication backlog
-    if (!replBacklogActive) {
+    // Check replication backlog.
+    // The backlog deactivates naturally when the last replica disconnects and
+    // repl-backlog-ttl expires — so an inactive backlog is expected when there
+    // are 0 connected replicas. Only flag it when replicas ARE connected (which
+    // would be an anomaly) or when connectedSlaves > 0 and the backlog is gone.
+    if (!replBacklogActive && connectedSlaves > 0) {
       findings.push({
         severity: "WARNING",
         title: "Replication backlog not active",
-        detail: "The replication backlog is not active. Partial resynchronization will not be possible after disconnections.",
-        recommendation: "The backlog activates automatically when replicas connect. If replicas are expected, investigate why none have connected.",
+        detail: "The replication backlog is not active despite having connected replicas. Partial resynchronization will not be possible after brief disconnections.",
+        recommendation: "Check repl-backlog-size and repl-backlog-ttl settings. The backlog should activate automatically when replicas connect.",
       });
-    } else if (replBacklogSize < 1048576) {
+    } else if (replBacklogActive && replBacklogSize < 1048576) {
       findings.push({
         severity: "WARNING",
         title: `Replication backlog too small (${formatBytes(replBacklogSize)})`,

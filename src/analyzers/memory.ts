@@ -171,7 +171,7 @@ export function formatMemoryAnalysis(analysis: MemoryAnalysis): string {
   lines.push(
     `- Max Memory: ${analysis.maxMemory > 0 ? formatBytes(analysis.maxMemory) : "unlimited"}`
   );
-  lines.push(`- Fragmentation Ratio: ${analysis.fragmentationRatio.toFixed(2)}x`);
+  lines.push(`- Fragmentation Ratio: ${analysis.fragmentationRatio > 0 ? `${analysis.fragmentationRatio.toFixed(2)}x` : "N/A"}`);
   lines.push(`- Eviction Policy: ${analysis.maxMemoryPolicy}`);
   lines.push(`- Evicted Keys: ${analysis.evictedKeys.toLocaleString()}`);
 

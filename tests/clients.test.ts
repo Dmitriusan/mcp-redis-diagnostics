@@ -98,6 +98,21 @@ describe("analyzeClients", () => {
     expect(bufFinding).toBeDefined();
   });
 
+  it("reports INFO (not WARNING) for a small number of idle connections below warning thresholds", () => {
+    // 2 idle clients out of 10 total = 20%, below the 50% warning threshold.
+    // Also below the 100-connection absolute threshold.
+    // This exercises the else-if(idleConnections > 0) INFO path.
+    const idleClient = "id=10 addr=127.0.0.1:51000 fd=15 name=idle1 age=1000 idle=400 flags=N db=0 cmd=ping qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0\n" +
+      "id=11 addr=127.0.0.1:51001 fd=16 name=idle2 age=2000 idle=600 flags=N db=0 cmd=ping qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0";
+    const clients = parseClientList(idleClient);
+    const info = makeInfo({ clients: { connected_clients: "10", blocked_clients: "0" } });
+    const analysis = analyzeClients(clients, info);
+    const idleFinding = analysis.findings.find((f) => f.title.includes("idle connection"));
+    expect(idleFinding).toBeDefined();
+    expect(idleFinding!.severity).toBe("INFO");
+    expect(idleFinding!.recommendation).toContain("timeout");
+  });
+
   it("reports healthy state when no issues", () => {
     const clients = parseClientList(
       "id=1 addr=127.0.0.1:5000 fd=5 name=app age=10 idle=1 flags=N db=0 cmd=get qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0"

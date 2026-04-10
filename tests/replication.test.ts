@@ -71,8 +71,18 @@ describe("analyzeReplication", () => {
     expect(finding!.recommendation).toContain("repl-backlog-size");
   });
 
-  it("detects inactive backlog on master", () => {
+  it("does NOT warn about inactive backlog when there are 0 replicas (expected state)", () => {
+    // The backlog deactivates naturally when all replicas disconnect.
+    // Firing a warning here is noise — the "0 replicas" WARNING covers this scenario.
     const info = makeInfo({ replication: { role: "master", connected_slaves: "0", repl_backlog_active: "0", repl_backlog_size: "0" } });
+    const analysis = analyzeReplication(info);
+    const backlogFinding = analysis.findings.find((f) => f.title.includes("backlog not active"));
+    expect(backlogFinding).toBeUndefined();
+  });
+
+  it("warns about inactive backlog when replicas ARE connected (anomaly)", () => {
+    // Replicas connected but backlog inactive is an anomalous configuration.
+    const info = makeInfo({ replication: { role: "master", connected_slaves: "2", repl_backlog_active: "0", repl_backlog_size: "0" } });
     const analysis = analyzeReplication(info);
     const finding = analysis.findings.find((f) => f.title.includes("backlog not active"));
     expect(finding).toBeDefined();
