@@ -128,4 +128,23 @@ evicted_keys:0
     const unbalanced = analysis.findings.find((f) => f.title.includes("unbalanced"));
     expect(unbalanced).toBeDefined();
   });
+
+  it("omits hit rate from summary when no cache operations recorded", () => {
+    // Redis used as pub/sub broker or fresh instance: keyspace_hits and keyspace_misses are both 0.
+    // Showing "0.0% hit rate" is misleading — it implies a cache miss problem when there are no ops.
+    const info = makeInfo({ hits: "0", misses: "0" });
+    const analysis = analyzeKeyspace(info);
+    expect(analysis.totalOps).toBe(0);
+    expect(analysis.summary).not.toContain("hit rate");
+    expect(analysis.summary).toContain("keys");
+  });
+
+  it("formatKeyspaceAnalysis shows N/A for hit rate when no operations recorded", () => {
+    const info = makeInfo({ hits: "0", misses: "0" });
+    const analysis = analyzeKeyspace(info);
+    const output = formatKeyspaceAnalysis(analysis);
+    expect(output).toContain("Cache Hit Rate: N/A (no operations recorded)");
+    // The hit rate line must not show a percentage like "Cache Hit Rate: 0.0%"
+    expect(output).not.toContain("Cache Hit Rate: 0.0%");
+  });
 });

@@ -25,6 +25,7 @@ export interface KeyspaceAnalysis {
   expiredKeys: number;
   evictedKeys: number;
   hitRate: number;
+  totalOps: number;
   findings: KeyspaceFinding[];
   summary: string;
 }
@@ -141,7 +142,9 @@ export function analyzeKeyspace(info: RedisInfo): KeyspaceAnalysis {
       ? `CRITICAL: ${criticalCount} critical keyspace issue(s)`
       : warningCount > 0
         ? `WARNING: ${warningCount} keyspace warning(s)`
-        : `OK: ${totalKeys.toLocaleString()} keys, ${hitRate.toFixed(1)}% hit rate`;
+        : totalOps > 0
+          ? `OK: ${totalKeys.toLocaleString()} keys, ${hitRate.toFixed(1)}% hit rate`
+          : `OK: ${totalKeys.toLocaleString()} keys`;
 
   return {
     totalKeys,
@@ -151,6 +154,7 @@ export function analyzeKeyspace(info: RedisInfo): KeyspaceAnalysis {
     expiredKeys,
     evictedKeys,
     hitRate,
+    totalOps,
     findings,
     summary,
   };
@@ -168,7 +172,7 @@ export function formatKeyspaceAnalysis(analysis: KeyspaceAnalysis): string {
   lines.push(`- Keys with TTL: ${analysis.totalExpires.toLocaleString()} (${analysis.ttlCoveragePct.toFixed(1)}%)`);
   lines.push(`- Expired Keys (total): ${analysis.expiredKeys.toLocaleString()}`);
   lines.push(`- Evicted Keys (total): ${analysis.evictedKeys.toLocaleString()}`);
-  lines.push(`- Cache Hit Rate: ${analysis.hitRate.toFixed(1)}%`);
+  lines.push(`- Cache Hit Rate: ${analysis.totalOps > 0 ? `${analysis.hitRate.toFixed(1)}%` : "N/A (no operations recorded)"}`);
 
   if (analysis.databases.length > 0) {
     lines.push("");
