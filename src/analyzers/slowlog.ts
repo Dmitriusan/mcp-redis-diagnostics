@@ -71,6 +71,7 @@ const SAFER_ALTERNATIVES: Record<string, string> = {
   HGETALL: "Use HSCAN for large hashes instead of HGETALL",
   LRANGE: "Avoid LRANGE with large ranges (e.g. LRANGE 0 -1 fetches the full list). Use bounded ranges for pagination or switch to a sorted set for range queries.",
   SORT: "Pre-sort data or use sorted sets (ZADD/ZRANGEBYSCORE) instead of SORT",
+  DEBUG: "DEBUG subcommands (SLEEP, RELOAD, JMAP, OOM) are for Redis core developers only — DEBUG SLEEP blocks all clients for the specified duration, DEBUG RELOAD triggers an expensive full dataset reload. Remove DEBUG access immediately: ACL SETUSER <user> -DEBUG, or add 'rename-command DEBUG \"\"' in redis.conf.",
 };
 
 export function analyzeSlowlog(entries: SlowlogEntry[], thresholdUs: number = 10000): SlowlogAnalysis {

@@ -170,6 +170,21 @@ describe("analyzeSlowlog", () => {
     expect(bufferFinding).toBeDefined();
   });
 
+  it("detects DEBUG command with specific ACL and rename-command recommendation", () => {
+    // DEBUG SLEEP/RELOAD are for Redis core developers only — a DEBUG in the slowlog means
+    // the command reached production, which is a security/stability risk.
+    // The recommendation must be specific enough to actually fix the exposure.
+    const entries = parseSlowlogEntries([
+      [1, 1709000000, 3000, ["DEBUG", "SLEEP", "2"], "", ""],
+    ]);
+    const analysis = analyzeSlowlog(entries);
+    const finding = analysis.findings.find((f) => f.title.includes("DEBUG"));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("WARNING");
+    expect(finding!.recommendation).toContain("DEBUG SLEEP");
+    expect(finding!.recommendation).toContain("rename-command");
+  });
+
   it("calculates command breakdown correctly", () => {
     const entries = parseSlowlogEntries([
       [1, 1709000000, 10000, ["GET", "a"], "", ""],
