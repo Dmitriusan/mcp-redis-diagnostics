@@ -1,6 +1,6 @@
 {
   "name": "mcp-redis-diagnostics",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "MCP server for Redis diagnostics — analyze memory usage, slowlog, client connections, and keyspace health with AI-powered recommendations",
   "mcpName": "io.github.dmitriusan/mcp-redis-diagnostics",
   "author": "Dmytro Lisnichenko",

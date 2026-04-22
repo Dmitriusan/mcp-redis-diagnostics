@@ -28,7 +28,7 @@ import { analyzeReplication, formatReplicationAnalysis } from "./analyzers/repli
 
 // Handle --help
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
-  console.log(`mcp-redis-diagnostics v0.1.11 — MCP server for Redis diagnostics
+  console.log(`mcp-redis-diagnostics v0.1.12 — MCP server for Redis diagnostics
 
 Usage:
   mcp-redis-diagnostics [options]
@@ -106,7 +106,7 @@ async function closeRedis(): Promise<void> {
 // --- MCP Server ---
 const server = new McpServer({
   name: "mcp-redis-diagnostics",
-  version: "0.1.11",
+  version: "0.1.12",
 });
 
 // Tool 1: analyze_memory
