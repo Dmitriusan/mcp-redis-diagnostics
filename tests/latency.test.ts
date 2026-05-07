@@ -178,6 +178,45 @@ describe("analyzeLatency", () => {
     expect(warnFindings).toHaveLength(0);
   });
 
+  it("uses human-readable description from EVENT_DESCRIPTIONS for eviction-del generic path", () => {
+    // eviction-del is in EVENT_DESCRIPTIONS but has no dedicated handler — falls through to generic >200ms check
+    const events = parseLatencyLatest([["eviction-del", 1709000000, 120, 250]]);
+    const analysis = analyzeLatency(events);
+    const finding = analysis.findings.find((f) => f.severity === "WARNING");
+    expect(finding).toBeDefined();
+    // Title should use the description "Deleting key during eviction", not the raw event name "eviction-del"
+    expect(finding!.title).toContain("Deleting key during eviction");
+    expect(finding!.title).toContain("250ms max");
+  });
+
+  it("does not flag trend when history is non-monotonic (spike then recovery)", () => {
+    // 3-entry history where middle entry spikes but last drops back — not a true upward trend
+    const events = parseLatencyLatest([["command", 1709000000, 30, 80]]);
+    const history = {
+      command: [
+        { timestamp: 1709000000, latencyMs: 10 },
+        { timestamp: 1709000010, latencyMs: 50 },
+        { timestamp: 1709000020, latencyMs: 30 },
+      ],
+    };
+    const analysis = analyzeLatency(events, history);
+    const trendFinding = analysis.findings.find((f) => f.title.includes("Increasing latency trend"));
+    expect(trendFinding).toBeUndefined();
+  });
+
+  it("does not flag trend with only 2 history entries (insufficient data)", () => {
+    const events = parseLatencyLatest([["command", 1709000000, 30, 80]]);
+    const history = {
+      command: [
+        { timestamp: 1709000000, latencyMs: 10 },
+        { timestamp: 1709000010, latencyMs: 50 },
+      ],
+    };
+    const analysis = analyzeLatency(events, history);
+    const trendFinding = analysis.findings.find((f) => f.title.includes("Increasing latency trend"));
+    expect(trendFinding).toBeUndefined();
+  });
+
   it("reports healthy when events within normal range", () => {
     const events = parseLatencyLatest([
       ["command", 1709000000, 5, 20],

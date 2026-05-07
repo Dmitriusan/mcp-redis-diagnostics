@@ -173,7 +173,7 @@ server.tool(
 // Tool 3: analyze_clients
 server.tool(
   "analyze_clients",
-  "Analyze Redis client connections. Detects blocked clients, idle connections, output buffer issues, connection pool saturation, and pub/sub subscriber patterns.",
+  "Analyze Redis client connections. Detects blocked clients, connection pool saturation, large output buffers, and pub/sub subscriber concentration. Idle connection count excludes replica (S flag) and pub/sub subscriber (P flag) connections, which are expected to be persistent — this prevents false positives when the target Redis instance has replicas or pub/sub consumers attached.",
   {},
   async () => {
     try {
