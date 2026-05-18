@@ -118,6 +118,15 @@ describe("analyzeSlowlog", () => {
     expect(concFinding!.title).toContain("100%");
   });
 
+  it("does not flag command concentration with only 1 slowlog entry", () => {
+    const entries = parseSlowlogEntries([
+      [1, 1709000000, 50000, ["KEYS", "*"], "", ""],
+    ]);
+    const analysis = analyzeSlowlog(entries);
+    const concFinding = analysis.findings.find((f) => f.title.includes("dominates"));
+    expect(concFinding).toBeUndefined();
+  });
+
   it("detects FLUSHALL as CRITICAL", () => {
     const entries = parseSlowlogEntries([
       [1, 1709000000, 5000, ["FLUSHALL"], "", ""],
